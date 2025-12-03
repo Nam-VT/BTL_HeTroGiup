@@ -1,0 +1,77 @@
+CREATE TABLE `landlord` (
+  `id`  bigint auto_increment primary key,
+  `email` varchar(255) NULL,
+  `password_hash` varchar(255) null,
+  `phone_number` varchar(20) null,
+  `full_name` varchar(255) null,
+  `is_deleted` boolean DEFAULT false
+);
+
+CREATE TABLE `room` (
+  `id` bigint auto_increment primary key,
+  `landlord_user_id` bigint not NULL,
+  `title` varchar(255) null,
+  `description` text null,
+  `address` varchar(500) null,
+  `latitude` decimal(9,6) null,
+  `longitude` decimal(9,6) null,
+  `price_vnd` bigint null,
+  `area_sqm` decimal(8,2) null,
+  `room_type` ENUM ('SINGLE', 'DOUBLE', 'SHARED') null,
+  `status` ENUM ('AVAILABLE', 'RENTED', 'PENDING') NOT NULL DEFAULT 'pending',
+  `avg_amenity` decimal(2,1) null,
+  `avg_scurity` decimal(2,1) null,
+  `is_deleted` boolean DEFAULT false
+);
+
+CREATE TABLE `survey` (
+  `id` bigint auto_increment primary key,
+  `type` ENUM ('SECURITY', 'AMENITY') null,
+  `title` text null,
+  `description` text null,
+`is_deleted` boolean DEFAULT false
+);
+
+CREATE TABLE `survey_question` (
+  `id` bigint auto_increment primary key,
+  `survey_id` bigint not null,
+  `question_text` text null,
+  `question_order` integer null,
+`is_deleted` boolean DEFAULT false
+);
+
+CREATE TABLE `survey_answer` (
+  `id` bigint auto_increment primary key,
+  `room_id` bigint not null,
+  `survey_question_id` bigint not null,
+  `point` integer null,
+`is_deleted` boolean DEFAULT false
+);
+
+CREATE TABLE `room_image` (
+  `id` bigint auto_increment primary key,
+  `room_id` bigint NOT NULL,
+  `attach_file_id` bigint NOT NULL,
+  `is_cover` boolean DEFAULT false,
+`is_deleted` boolean DEFAULT false
+);
+
+CREATE TABLE `attach_file` (
+  `id` bigint auto_increment primary key,
+  `url` varchar(1000) null,
+`is_deleted` boolean DEFAULT false
+);
+
+ALTER TABLE `room` ADD FOREIGN KEY (`landlord_user_id`) REFERENCES `landlord` (`id`);
+
+ALTER TABLE `survey_question` ADD FOREIGN KEY (`survey_id`) REFERENCES `survey` (`id`);
+
+ALTER TABLE `survey_answer` ADD FOREIGN KEY (`room_id`) REFERENCES `room` (`id`);
+
+ALTER TABLE `survey_answer` ADD FOREIGN KEY (`survey_question_id`) REFERENCES `survey_question` (`id`);
+
+ALTER TABLE `room_image` ADD FOREIGN KEY (`room_id`) REFERENCES `room` (`id`);
+
+ALTER TABLE `room_image` ADD FOREIGN KEY (`attach_file_id`) REFERENCES `attach_file` (`id`);
+
+
