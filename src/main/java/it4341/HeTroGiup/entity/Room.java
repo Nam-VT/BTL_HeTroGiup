@@ -11,14 +11,14 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class room {
+public class Room {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "landlord_user_id", nullable = false)
-    private landlord landlord;
+    private Landlord landlord;
 
     private String title;
 
@@ -57,7 +57,6 @@ public class room {
     @Column(name = "is_deleted")
     private Boolean isDeleted = false;
 
-    // Quan hệ ngược để tiện truy vấn
     @OneToMany(mappedBy = "room")
-    private List<roomImage> images;
+    private List<RoomImage> images;
 }

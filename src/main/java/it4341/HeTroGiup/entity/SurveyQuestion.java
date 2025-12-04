@@ -4,25 +4,25 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
+@Table(name = "survey_question")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class roomImage {
+public class SurveyQuestion {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "room_id", nullable = false)
-    private room room;
+    @JoinColumn(name = "survey_id", nullable = false)
+    private Survey survey;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "attach_file_id", nullable = false)
-    private attachFile attachFile;
+    @Column(name = "question_text", columnDefinition = "TEXT")
+    private String questionText;
 
-    @Column(name = "is_cover")
-    private Boolean isCover = false;
+    @Column(name = "question_order")
+    private Integer questionOrder;
 
     @Column(name = "is_deleted")
     private Boolean isDeleted = false;
