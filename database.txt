@@ -10,6 +10,7 @@ CREATE TABLE `landlord` (
 CREATE TABLE `room` (
   `id` bigint auto_increment primary key,
   `landlord_user_id` bigint not NULL,
+  `area_type_id` bigint not null,
   `title` varchar(255) null,
   `description` text null,
   `address` varchar(500) null,
@@ -18,7 +19,7 @@ CREATE TABLE `room` (
   `price_vnd` bigint null,
   `area_sqm` decimal(8,2) null,
   `room_type` ENUM ('SINGLE', 'DOUBLE', 'SHARED') null,
-  `status` ENUM ('AVAILABLE', 'RENTED', 'PENDING') NOT NULL DEFAULT 'pending',
+  `status` ENUM ('AVAILABLE', 'RENTED', 'PENDING') NOT NULL DEFAULT 'PENDING',
   `avg_amenity` decimal(2,1) null,
   `avg_scurity` decimal(2,1) null,
   `is_deleted` boolean DEFAULT false
@@ -62,7 +63,16 @@ CREATE TABLE `attach_file` (
 `is_deleted` boolean DEFAULT false
 );
 
+CREATE TABLE `area_type` (
+  `id` bigint auto_increment primary key,
+  `name` varchar(1000) null,
+`is_deleted` boolean DEFAULT false
+);
+
+
 ALTER TABLE `room` ADD FOREIGN KEY (`landlord_user_id`) REFERENCES `landlord` (`id`);
+
+ALTER TABLE `room` ADD FOREIGN KEY (`area_type_id`) REFERENCES `area_type` (`id`);
 
 ALTER TABLE `survey_question` ADD FOREIGN KEY (`survey_id`) REFERENCES `survey` (`id`);
 
