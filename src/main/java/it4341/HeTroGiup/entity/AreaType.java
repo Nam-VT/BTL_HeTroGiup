@@ -1,19 +1,26 @@
 package it4341.HeTroGiup.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import lombok.Data;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
+import lombok.*;
 
-@Data
+
 @Entity
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+
+@Table(name = "area_type")
 public class AreaType {
+
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long id;
+    private Long id;
 
+    @Column(length = 1000)
     private String name;
 
-    private boolean isDeleted;
+    @Column(name = "is_deleted")
+    private Boolean isDeleted = false;
 }
