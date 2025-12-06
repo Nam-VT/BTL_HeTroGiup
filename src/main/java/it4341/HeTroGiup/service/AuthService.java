@@ -1,5 +1,6 @@
 package it4341.HeTroGiup.service;
 
+import it4341.HeTroGiup.dto.LandLordDto;
 import it4341.HeTroGiup.dto.response.ApiResponse;
 import it4341.HeTroGiup.dto.request.LoginRequest;
 import it4341.HeTroGiup.dto.request.RegisterRequest;
@@ -49,6 +50,6 @@ public class AuthService {
             return new ApiResponse("exception", "Sai mật khẩu", null);
         }
 
-        return new ApiResponse("00", null, "successful");
+        return new ApiResponse("00", null, LandLordDto.builder().id(user.getId()).email(user.getEmail()).fullName(user.getFullName()).phoneNumber(user.getPhoneNumber()).build());
     }
 }

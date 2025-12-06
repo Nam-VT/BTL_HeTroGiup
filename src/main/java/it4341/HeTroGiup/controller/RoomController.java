@@ -18,7 +18,7 @@ public class RoomController {
     private final RoomService roomService;
 
     // 1. Thêm mới phòng
-    @PostMapping
+    @PostMapping("/create")
     public ResponseEntity<ApiResponse> createRoom(@RequestBody RoomCreateRequest request) {
         RoomCreateResponse result = roomService.createRoom(request);
 
@@ -26,7 +26,7 @@ public class RoomController {
     }
 
     // 2. Sửa thông tin phòng
-    @PostMapping("/{id}")
+    @PostMapping("/update")
     public ResponseEntity<ApiResponse> updateRoom(
             @RequestBody RoomUpdateRequest request) {
         RoomUpdateResponse result = roomService.updateRoom(request);
@@ -50,7 +50,7 @@ public class RoomController {
 //        return ResponseEntity.ok(roomService.getRoomDetail(id));
 //    }
 
-    @PostMapping()
+    @PostMapping("/delete")
     public ResponseEntity<ApiResponse> deleteRoom(@RequestBody RoomDeleteRequest req) {
         try {
             roomService.deleteRoom(req);

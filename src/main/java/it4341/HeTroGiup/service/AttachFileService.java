@@ -11,6 +11,7 @@ import lombok.Builder;
 
 import java.io.IOException;
 import java.nio.file.*;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -68,5 +69,10 @@ public class AttachFileService {
         } catch (IOException ex) {
             throw new RuntimeException("Không thể lưu file " + originalFileName, ex);
         }
+    }
+
+    @Transactional
+    public List<AttachFile> uploadFiles(List<MultipartFile> files) {
+        return files.stream().map(this::uploadFile).toList();
     }
 }
