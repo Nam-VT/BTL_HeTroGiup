@@ -20,6 +20,9 @@ public class Room {
     @JoinColumn(name = "landlord_user_id", nullable = false)
     private Landlord landlord;
 
+    @Column(name = "area_type_id")
+    private Long areaTypeId;
+
     private String title;
 
     @Column(columnDefinition = "TEXT")
@@ -52,7 +55,7 @@ public class Room {
     private BigDecimal avgAmenity;
 
     @Column(name = "avg_scurity", precision = 2, scale = 1)
-    private BigDecimal avgScurity;
+    private BigDecimal avgSecurity;
 
     @Column(name = "is_deleted")
     private Boolean isDeleted = false;
