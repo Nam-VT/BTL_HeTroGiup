@@ -1,12 +1,12 @@
 package it4341.HeTroGiup.controller;
 
-import it4341.HeTroGiup.dto.RoomDTO;
+import it4341.HeTroGiup.dto.request.RoomCreateRequest;
+import it4341.HeTroGiup.dto.request.RoomUpdateRequest;
+import it4341.HeTroGiup.dto.response.*;
 import it4341.HeTroGiup.service.RoomService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/rooms")
@@ -17,25 +17,47 @@ public class RoomController {
 
     // 1. Thêm mới phòng
     @PostMapping
-    public ResponseEntity<RoomDTO> createRoom(@RequestBody RoomDTO roomDTO) {
-        return ResponseEntity.ok(roomService.createRoom(roomDTO));
+    public ResponseEntity<ApiResponse> createRoom(@RequestBody RoomCreateRequest request) {
+        RoomCreateResponse result = roomService.createRoom(request);
+
+        return ResponseEntity.ok(new ApiResponse("00", null, result));
     }
 
     // 2. Sửa thông tin phòng
     @PutMapping("/{id}")
-    public ResponseEntity<RoomDTO> updateRoom(@PathVariable Long id, @RequestBody RoomDTO roomDTO) {
-        return ResponseEntity.ok(roomService.updateRoom(id, roomDTO));
+    public ResponseEntity<ApiResponse> updateRoom(
+            @PathVariable Long id,
+            @RequestBody RoomUpdateRequest request) { // Đã đổi thành RoomCreateRequest
+        RoomUpdateResponse result = roomService.updateRoom(id, request);
+        return ResponseEntity.ok(new ApiResponse("00", null, result));
     }
 
     // 3. Xem danh sách phòng (Theo chủ trọ)
-    @GetMapping("/landlord/{landlordId}")
-    public ResponseEntity<List<RoomDTO>> getRoomsByLandlord(@PathVariable Long landlordId) {
-        return ResponseEntity.ok(roomService.getRoomsByLandlord(landlordId));
+    @PostMapping("/all")
+    public ResponseEntity<ApiResponse> getMyRooms(
+            @RequestParam(defaultValue = "0") int pageNumber,
+            @RequestParam(defaultValue = "20") int pageSize,
+            @RequestParam Long id
+    ) {
+
+        PageResponse<RoomListResponse> result = roomService.getAllRooms(id, pageNumber, pageSize);
+            return ResponseEntity.ok(new ApiResponse("00", null, result));
+
     }
 
     // 4. Xem chi tiết phòng
-    @GetMapping("/{id}")
-    public ResponseEntity<RoomDTO> getRoomDetail(@PathVariable Long id) {
-        return ResponseEntity.ok(roomService.getRoomDetail(id));
+//    @GetMapping("/{id}")
+//    public ResponseEntity<RoomDTO> getRoomDetail(@PathVariable Long id) {
+//        return ResponseEntity.ok(roomService.getRoomDetail(id));
+//    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse> deleteRoom(@PathVariable Long id) {
+        try {
+            roomService.deleteRoom(id);
+            return ResponseEntity.ok(new ApiResponse("00", null, "Xóa phòng thành công"));
+        } catch (Exception e) {
+            return ResponseEntity.ok(new ApiResponse("exception", e.getMessage(), null));
+        }
     }
 }
