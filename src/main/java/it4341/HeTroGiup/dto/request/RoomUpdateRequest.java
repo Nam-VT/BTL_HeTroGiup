@@ -9,6 +9,9 @@ import java.util.List;
 
 @Data
 public class RoomUpdateRequest {
+
+    private Long id;
+
     private Long areaTypeId;
 
     private String title;

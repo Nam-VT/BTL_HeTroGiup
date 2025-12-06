@@ -24,6 +24,5 @@ public class RoomCreateRequest {
 
     private List<Long> roomNotCoverImageIds;
 
-    // Danh sách câu trả lời khảo sát
     private List<RoomSurveyAnswerRequest> surveyAnswers;
 }

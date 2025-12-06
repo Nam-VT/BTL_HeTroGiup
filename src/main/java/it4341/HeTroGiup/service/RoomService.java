@@ -1,8 +1,6 @@
 package it4341.HeTroGiup.service;
 
-import it4341.HeTroGiup.dto.request.RoomCreateRequest;
-import it4341.HeTroGiup.dto.request.RoomSurveyAnswerRequest;
-import it4341.HeTroGiup.dto.request.RoomUpdateRequest;
+import it4341.HeTroGiup.dto.request.*;
 import it4341.HeTroGiup.dto.response.PageResponse;
 import it4341.HeTroGiup.dto.response.RoomCreateResponse;
 import it4341.HeTroGiup.dto.response.RoomListResponse;
@@ -124,8 +122,8 @@ public class RoomService {
     }
 
     @Transactional
-    public RoomUpdateResponse updateRoom(Long roomId, RoomUpdateRequest req) {
-        Room room = roomRepository.findById(roomId)
+    public RoomUpdateResponse updateRoom(RoomUpdateRequest req) {
+        Room room = roomRepository.findById(req.getId())
                 .orElseThrow(() -> new RuntimeException("Phòng không tồn tại"));
 
         if (req.getAreaTypeId() != null) {
@@ -148,7 +146,7 @@ public class RoomService {
         Room savedRoom = roomRepository.save(room);
 
         if (req.getRoomCoverImageId() != null || (req.getRoomNotCoverImageIds() != null && !req.getRoomNotCoverImageIds().isEmpty())) {
-            roomImageRepository.deleteByRoomId(roomId);
+            roomImageRepository.deleteByRoomId(req.getId());
 
             List<RoomImage> imagesToSave = new ArrayList<>();
 
@@ -184,7 +182,7 @@ public class RoomService {
         }
 
         if (req.getSurveyAnswers() != null) {
-            surveyAnswerRepository.deleteByRoomId(roomId);
+            surveyAnswerRepository.deleteByRoomId(req.getId());
 
             List<SurveyAnswer> answersToSave = new ArrayList<>();
             for (RoomSurveyAnswerRequest ansReq : req.getSurveyAnswers()) {
@@ -206,13 +204,10 @@ public class RoomService {
         return new RoomUpdateResponse(savedRoom.getId());
     }
 
-    public PageResponse<RoomListResponse> getAllRooms(Long landLordId, int pageNumber, int pageSize) {
+    public PageResponse<RoomListResponse> getAllRooms(RoomPageRequest req) {
 
-        Landlord landlord = landlordRepository.findById(landLordId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy thông tin chủ trọ!"));
-
-        Pageable pageable = PageRequest.of(pageNumber, pageSize);
-        Page<Room> roomPage = roomRepository.findByLandlordIdAndIsDeletedFalse(landLordId, pageable);
+        Pageable pageable = PageRequest.of(req.getPageNumber(), req.getPageSize());
+        Page<Room> roomPage = roomRepository.findByIsDeletedFalse(pageable);
 
         // Tối ưu Query: Lấy danh sách areaTypeId từ list phòng để query tên 1 lần
         List<Long> areaTypeIds = roomPage.getContent().stream()
@@ -229,16 +224,18 @@ public class RoomService {
                     .collect(Collectors.toMap(AreaType::getId, AreaType::getName));
         }
 
-        Map<Long, String> finalAreaTypeMap = areaTypeMap;
+        final Map<Long, String> finalAreaMap = areaTypeMap;
+
         List<RoomListResponse> responseList = roomPage.getContent().stream().map(room -> {
             RoomListResponse dto = new RoomListResponse();
+
             dto.setId(room.getId());
             dto.setLandlordUserId(room.getLandlord().getId());
 
             Long aId = room.getAreaTypeId();
             dto.setAreaTypeId(aId);
             if (aId != null) {
-                dto.setAreaTypeName(finalAreaTypeMap.get(aId));
+                dto.setAreaTypeName(finalAreaMap.get(aId));
             }
 
             dto.setTitle(room.getTitle());
@@ -283,7 +280,8 @@ public class RoomService {
 
 
     @Transactional
-    public void deleteRoom(Long roomId) {
+    public void deleteRoom(RoomDeleteRequest req) {
+        Long roomId = req.getId();
         Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new RuntimeException("Phòng không tồn tại"));
         roomImageRepository.deleteByRoomId(roomId);

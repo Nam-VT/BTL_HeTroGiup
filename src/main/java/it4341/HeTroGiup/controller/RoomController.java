@@ -1,6 +1,8 @@
 package it4341.HeTroGiup.controller;
 
 import it4341.HeTroGiup.dto.request.RoomCreateRequest;
+import it4341.HeTroGiup.dto.request.RoomDeleteRequest;
+import it4341.HeTroGiup.dto.request.RoomPageRequest;
 import it4341.HeTroGiup.dto.request.RoomUpdateRequest;
 import it4341.HeTroGiup.dto.response.*;
 import it4341.HeTroGiup.service.RoomService;
@@ -24,25 +26,22 @@ public class RoomController {
     }
 
     // 2. Sửa thông tin phòng
-    @PutMapping("/{id}")
+    @PostMapping("/{id}")
     public ResponseEntity<ApiResponse> updateRoom(
-            @PathVariable Long id,
-            @RequestBody RoomUpdateRequest request) { // Đã đổi thành RoomCreateRequest
-        RoomUpdateResponse result = roomService.updateRoom(id, request);
+            @RequestBody RoomUpdateRequest request) {
+        RoomUpdateResponse result = roomService.updateRoom(request);
         return ResponseEntity.ok(new ApiResponse("00", null, result));
     }
 
     // 3. Xem danh sách phòng (Theo chủ trọ)
     @PostMapping("/all")
-    public ResponseEntity<ApiResponse> getMyRooms(
-            @RequestParam(defaultValue = "0") int pageNumber,
-            @RequestParam(defaultValue = "20") int pageSize,
-            @RequestParam Long id
-    ) {
-
-        PageResponse<RoomListResponse> result = roomService.getAllRooms(id, pageNumber, pageSize);
+    public ResponseEntity<ApiResponse> getAllRooms(@RequestBody RoomPageRequest request) {
+        try {
+            PageResponse<RoomListResponse> result = roomService.getAllRooms(request);
             return ResponseEntity.ok(new ApiResponse("00", null, result));
-
+        } catch (Exception e) {
+            return ResponseEntity.ok(new ApiResponse("exception", e.getMessage(), null));
+        }
     }
 
     // 4. Xem chi tiết phòng
@@ -51,10 +50,10 @@ public class RoomController {
 //        return ResponseEntity.ok(roomService.getRoomDetail(id));
 //    }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse> deleteRoom(@PathVariable Long id) {
+    @PostMapping()
+    public ResponseEntity<ApiResponse> deleteRoom(@RequestBody RoomDeleteRequest req) {
         try {
-            roomService.deleteRoom(id);
+            roomService.deleteRoom(req);
             return ResponseEntity.ok(new ApiResponse("00", null, "Xóa phòng thành công"));
         } catch (Exception e) {
             return ResponseEntity.ok(new ApiResponse("exception", e.getMessage(), null));
