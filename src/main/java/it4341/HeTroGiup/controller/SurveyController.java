@@ -5,7 +5,8 @@ import it4341.HeTroGiup.service.SurveyService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -20,8 +21,9 @@ public class SurveyController {
 
     private final SurveyService surveyService;
 
-    @GetMapping("/all")
-    public ResponseEntity<Map<String, Object>> getAllSurveys() {
+    @PostMapping("/all")
+    public ResponseEntity<Map<String, Object>> getAllSurveys(@RequestBody(required = false) Map<String, Object> req) {
+
         Map<String, Object> response = new LinkedHashMap<>();
         try {
             List<SurveyDTO> data = surveyService.getAllSurveys();
