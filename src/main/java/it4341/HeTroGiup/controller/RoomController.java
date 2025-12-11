@@ -1,13 +1,12 @@
 package it4341.HeTroGiup.controller;
 
-import it4341.HeTroGiup.dto.request.RoomCreateRequest;
-import it4341.HeTroGiup.dto.request.RoomDeleteRequest;
-import it4341.HeTroGiup.dto.request.RoomPageRequest;
-import it4341.HeTroGiup.dto.request.RoomUpdateRequest;
+import it4341.HeTroGiup.dto.request.*;
 import it4341.HeTroGiup.dto.response.*;
 import it4341.HeTroGiup.service.RoomService;
+import it4341.HeTroGiup.service.RoutingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.parameters.P;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -16,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 public class RoomController {
 
     private final RoomService roomService;
+    private final RoutingService routingService;
 
     // 1. Thêm mới phòng
     @PostMapping("/create")
@@ -55,6 +55,16 @@ public class RoomController {
         try {
             roomService.deleteRoom(req);
             return ResponseEntity.ok(new ApiResponse("00", null, "Xóa phòng thành công"));
+        } catch (Exception e) {
+            return ResponseEntity.ok(new ApiResponse("exception", e.getMessage(), null));
+        }
+    }
+
+    @PostMapping("/save-distance")
+    public  ResponseEntity<ApiResponse> saveDistanceFromRoomToScholl(@RequestBody RoomToSchoolRequest roomToSchoolRequest){
+        try {
+            routingService.findShortestRoutes(roomToSchoolRequest);
+            return ResponseEntity.ok(new ApiResponse("00", null, "successfull"));
         } catch (Exception e) {
             return ResponseEntity.ok(new ApiResponse("exception", e.getMessage(), null));
         }
