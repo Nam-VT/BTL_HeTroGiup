@@ -65,7 +65,7 @@ public class DSSService {
     }
 
     public List<List<Double>> normalizeDecisionTable(Map<String, Object> req) {
-        // 1. LẤY DỮ LIỆU & CHUYỂN SANG DOUBLE AN TOÀN
+        // 1. Parse dữ liệu an toàn
         @SuppressWarnings("unchecked")
         List<List<?>> rawData = (List<List<?>>) req.get("initMatrix");
         List<List<Double>> data = rawData.stream()
@@ -76,11 +76,10 @@ public class DSSService {
 
         if (data.isEmpty()) return new ArrayList<>();
 
-        int numRows = data.size();
         int numCols = data.get(0).size();
 
+        // 2. Tính mẫu số
         double[] denominators = new double[numCols];
-
         for (int j = 0; j < numCols; j++) {
             double sumSquare = 0.0;
             for (List<Double> row : data) {
@@ -90,16 +89,19 @@ public class DSSService {
             denominators[j] = Math.sqrt(sumSquare);
         }
 
+        // 3. Chuẩn hóa và Làm tròn
         List<List<Double>> normalizedData = new ArrayList<>();
-
         for (List<Double> row : data) {
             List<Double> normalizedRow = new ArrayList<>();
             for (int j = 0; j < numCols; j++) {
                 double value = row.get(j);
                 double denominator = denominators[j];
+
+                // Tính giá trị thô
                 double normValue = (denominator == 0) ? 0.0 : (value / denominator);
 
-                normalizedRow.add(normValue);
+                // GỌI HÀM ROUND TẠI ĐÂY
+                normalizedRow.add(round(normValue));
             }
             normalizedData.add(normalizedRow);
         }
@@ -108,45 +110,60 @@ public class DSSService {
     }
 
     public List<List<Double>> calculateWeightedMatrix(Map<String, Object> req) {
-        List<Double> priorityPool = new ArrayList<>(Arrays.asList(0.1, 0.15, 0.2, 0.25, 0.3));
+        // 1. LẤY LIST ĐIỂM ƯU TIÊN
+        List<?> rawWeightsInput = (List<?>) req.get("weights");
+        if (rawWeightsInput == null || rawWeightsInput.isEmpty()) {
+            throw new IllegalArgumentException("Lỗi: Không tìm thấy danh sách 'weights'!");
+        }
 
-        priorityPool.sort(Collections.reverseOrder());
-
-        List<?> rawRanks = (List<?>) req.get("weights");
-        List<Integer> ranks = rawRanks.stream()
-                .map(r -> ((Number) r).intValue())
+        // Chuyển đổi sang List<Double>
+        List<Double> priorityScores = rawWeightsInput.stream()
+                .map(w -> ((Number) w).doubleValue())
                 .collect(Collectors.toList());
 
+        // 2. TÍNH TỔNG ĐIỂM
+        double totalScore = 0.0;
+        for (Double score : priorityScores) {
+            totalScore += score;
+        }
 
-        List<Double> actualWeights = new ArrayList<>();
-        for (Integer rank : ranks) {
-            if (rank > 0 && rank <= priorityPool.size()) {
-                actualWeights.add(priorityPool.get(rank - 1));
-            } else {
-                actualWeights.add(0.0);
+        // 3. CHUẨN HÓA TRỌNG SỐ
+        List<Double> normalizedWeights = new ArrayList<>();
+        if (totalScore == 0) {
+            for (int i = 0; i < priorityScores.size(); i++) normalizedWeights.add(0.0);
+        } else {
+            for (Double score : priorityScores) {
+                normalizedWeights.add(score / totalScore);
             }
         }
 
-        @SuppressWarnings("unchecked")
+        // 4. LẤY MA TRẬN RMATRIX
         List<List<?>> rawMatrix = (List<List<?>>) req.get("rMatrix");
+        if (rawMatrix == null) return new ArrayList<>();
+
         List<List<Double>> rMatrix = rawMatrix.stream()
                 .map(row -> row.stream()
                         .map(item -> ((Number) item).doubleValue())
                         .collect(Collectors.toList()))
                 .collect(Collectors.toList());
 
-        if (rMatrix.isEmpty()) return new ArrayList<>();
+        // Kiểm tra khớp số cột
+        if (!rMatrix.isEmpty() && normalizedWeights.size() != rMatrix.get(0).size()) {
+            throw new IllegalArgumentException("Lỗi: Số lượng weights (" + normalizedWeights.size() +
+                    ") không khớp số cột dữ liệu (" + rMatrix.get(0).size() + ")");
+        }
 
-
+        // 5. NHÂN TRỌNG SỐ VÀO MA TRẬN
         List<List<Double>> weightedMatrix = new ArrayList<>();
-
         for (List<Double> row : rMatrix) {
             List<Double> weightedRow = new ArrayList<>();
             for (int j = 0; j < row.size(); j++) {
-                double r_val = row.get(j);
-                double w_val = actualWeights.get(j);
+                double rVal = row.get(j);
+                double wVal = normalizedWeights.get(j);
 
-                weightedRow.add(r_val * w_val);
+                // Nhân và gọi hàm round cho gọn
+                double result = rVal * wVal;
+                weightedRow.add(round(result));
             }
             weightedMatrix.add(weightedRow);
         }
