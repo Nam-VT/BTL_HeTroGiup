@@ -143,7 +143,48 @@ public class RoutingService {
                 .build()).collect(Collectors.toList());
     }
 
-    // --- SỬA LẠI HÀM NÀY ĐỂ DEBUG VÀ FIX LỖI 500 ---
+    public void updateAllDistancesForRoom(Room room) {
+        if (room.getLatitude() == null || room.getLongitude() == null) return;
+
+        List<RoomSchool> cacheList = roomSchoolRepository.findByRoomId(room.getId());
+        if (cacheList.isEmpty()) return; // Chưa từng tính khoảng cách thì thôi
+
+        List<Long> schoolIds = cacheList.stream().map(RoomSchool::getSchoolId).collect(Collectors.toList());
+        List<School> schools = schoolRepository.findAllById(schoolIds);
+        Map<Long, School> schoolMap = schools.stream()
+                .collect(Collectors.toMap(School::getId, Function.identity()));
+
+        List<RoomSchool> toUpdate = new ArrayList<>();
+
+        for (RoomSchool rs : cacheList) {
+            School school = schoolMap.get(rs.getSchoolId());
+            if (school == null) continue;
+
+            double schoolLat, schoolLng;
+            try {
+                double[] geo = geocodingService.getCoordinates(school.getNameSearch());
+                schoolLat = geo[0];
+                schoolLng = geo[1];
+            } catch (Exception e) {
+                continue;
+            }
+
+            RouteData routeData = getDistance(
+                    room.getLatitude().doubleValue(),
+                    room.getLongitude().doubleValue(),
+                    schoolLat,
+                    schoolLng
+            );
+
+            rs.setDistance(routeData.getDistanceKm());
+            toUpdate.add(rs);
+        }
+
+        if (!toUpdate.isEmpty()) {
+            roomSchoolRepository.saveAll(toUpdate);
+        }
+    }
+
     private RouteData getDistance(Double lat1, Double lng1, Double lat2, Double lng2) {
         try {
             // Dùng HashMap và ArrayList tường minh để tránh lỗi serialization

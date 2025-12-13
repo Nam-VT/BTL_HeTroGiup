@@ -1,10 +1,8 @@
 package it4341.HeTroGiup.service;
 
+import it4341.HeTroGiup.Enum.RoomType;
 import it4341.HeTroGiup.dto.request.*;
-import it4341.HeTroGiup.dto.response.PageResponse;
-import it4341.HeTroGiup.dto.response.RoomCreateResponse;
-import it4341.HeTroGiup.dto.response.RoomListResponse;
-import it4341.HeTroGiup.dto.response.RoomUpdateResponse;
+import it4341.HeTroGiup.dto.response.*;
 import it4341.HeTroGiup.entity.*;
 import it4341.HeTroGiup.repository.*;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +12,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -28,6 +27,9 @@ public class RoomService {
     private final SurveyQuestionRepository surveyQuestionRepository;
     private final SurveyAnswerRepository surveyAnswerRepository;
     private final AreaTypeRepository areaTypeRepository;
+    private final RoomSchoolRepository roomSchoolRepository;
+
+    private final RoutingService routingService;
 
     @Transactional
     public RoomCreateResponse createRoom(RoomCreateRequest req) {
@@ -121,29 +123,45 @@ public class RoomService {
         return new RoomCreateResponse(savedRoom.getId());
     }
 
+
     @Transactional
     public RoomUpdateResponse updateRoom(RoomUpdateRequest req) {
         Room room = roomRepository.findById(req.getId())
                 .orElseThrow(() -> new RuntimeException("Phòng không tồn tại"));
 
+        // 2. Lưu lại tọa độ cũ để so sánh
+        BigDecimal oldLat = room.getLatitude();
+        BigDecimal oldLng = room.getLongitude();
+
         if (req.getAreaTypeId() != null) {
-            if (!areaTypeRepository.existsById(req.getAreaTypeId())) {
-                throw new RuntimeException("Khu vực không tồn tại");
-            }
             room.setAreaTypeId(req.getAreaTypeId());
         }
-
         room.setTitle(req.getTitle());
         room.setDescription(req.getDescription());
         room.setAddress(req.getAddress());
+
+        // Cập nhật tọa độ mới
         room.setLatitude(req.getLatitude());
         room.setLongitude(req.getLongitude());
+
         room.setPriceVnd(req.getPriceVnd());
         room.setAreaSqm(req.getAreaSqm());
         room.setRoomType(req.getRoomType());
         if (req.getStatus() != null) room.setStatus(req.getStatus());
 
         Room savedRoom = roomRepository.save(room);
+
+        // CHECK THAY ĐỔI TỌA ĐỘ
+        boolean isLatChanged = !Objects.equals(oldLat, req.getLatitude());
+        boolean isLngChanged = !Objects.equals(oldLng, req.getLongitude());
+
+        if (isLatChanged || isLngChanged) {
+            try {
+                routingService.updateAllDistancesForRoom(savedRoom);
+            } catch (Exception e) {
+                System.err.println("Warning: Không thể cập nhật lại khoảng cách. Error: " + e.getMessage());
+            }
+        }
 
         if (req.getRoomCoverImageId() != null || (req.getRoomNotCoverImageIds() != null && !req.getRoomNotCoverImageIds().isEmpty())) {
             roomImageRepository.deleteByRoomId(req.getId());
@@ -204,38 +222,80 @@ public class RoomService {
         return new RoomUpdateResponse(savedRoom.getId());
     }
 
-    public PageResponse<RoomListResponse> getAllRooms(RoomPageRequest req) {
+    public RoomFilterResponse getAllRooms(RoomFilterRequest req) {
+
+        List<Long> areaTypeIds = (req.getAreaTypeIds() != null && !req.getAreaTypeIds().isEmpty()) ? req.getAreaTypeIds() : null;
+        List<RoomType> roomTypes = (req.getRoomTypes() != null && !req.getRoomTypes().isEmpty()) ? req.getRoomTypes() : null;
+
+        List<Object[]> allResults = roomRepository.findAllRoomsWithFilter(
+                req.getSchoolId(),
+                req.getFromPrice(), req.getToPrice(),
+                req.getFromArea(), req.getToArea(),
+                req.getFromSecurityPoints(), req.getToSecurityPoints(),
+                req.getFromAmenityPoints(), req.getToAmenityPoints(),
+                req.getFromDistance(), req.getToDistance(),
+                areaTypeIds, roomTypes
+        );
+
+        List<Long> rowIdsInMatrix = new ArrayList<>();
+        List<List<Double>> initMatrix = new ArrayList<>();
+
+        for (Object[] row : allResults) {
+            Room room = (Room) row[0];
+            Double dist = (Double) row[1];
+
+            rowIdsInMatrix.add(room.getId());
+
+            double rawPrice    = room.getPriceVnd() != null ? room.getPriceVnd().doubleValue() : 0.0;
+            double rawDistance = dist != null ? dist : 0.0;
+            double rawArea     = room.getAreaSqm() != null ? room.getAreaSqm().doubleValue() : 0.0;
+            double rawAmenity  = room.getAvgAmenity() != null ? room.getAvgAmenity().doubleValue() : 0.0;
+            double rawSecurity = room.getAvgSecurity() != null ? room.getAvgSecurity().doubleValue() : 0.0;
+
+            List<Double> matrixRow = Arrays.asList(
+                    rawPrice,     // Cột 1: Giá
+                    rawDistance,  // Cột 2: Khoảng cách
+                    rawArea,      // Cột 3: Diện tích
+                    rawAmenity,   // Cột 4: Tiện ích
+                    rawSecurity   // Cột 5: An ninh
+            );
+
+            initMatrix.add(matrixRow);
+        }
 
         Pageable pageable = PageRequest.of(req.getPageNumber(), req.getPageSize());
-        Page<Room> roomPage = roomRepository.findByIsDeletedFalse(pageable);
+        Page<Object[]> pagedResults = roomRepository.findRoomsWithFilterPaged(
+                req.getSchoolId(), req.getFromPrice(), req.getToPrice(), req.getFromArea(), req.getToArea(),
+                req.getFromSecurityPoints(), req.getToSecurityPoints(), req.getFromAmenityPoints(), req.getToAmenityPoints(),
+                req.getFromDistance(), req.getToDistance(), areaTypeIds, roomTypes, pageable
+        );
 
-        // Tối ưu Query: Lấy danh sách areaTypeId từ list phòng để query tên 1 lần
-        List<Long> areaTypeIds = roomPage.getContent().stream()
-                .map(Room::getAreaTypeId)
-                .filter(java.util.Objects::nonNull)
+        List<Long> aIds = pagedResults.getContent().stream()
+                .map(obj -> ((Room) obj[0]).getAreaTypeId())
+                .filter(Objects::nonNull)
                 .distinct()
                 .collect(Collectors.toList());
 
-        // Tạo Map: <ID, Name> để tra cứu nhanh
-        Map<Long, String> areaTypeMap = new HashMap<>();
-        if (!areaTypeIds.isEmpty()) {
-            List<AreaType> areas = areaTypeRepository.findAllById(areaTypeIds);
-            areaTypeMap = areas.stream()
+        Map<Long, String> areaMap = new HashMap<>();
+        if (!aIds.isEmpty()) {
+            areaMap = areaTypeRepository.findAllById(aIds).stream()
                     .collect(Collectors.toMap(AreaType::getId, AreaType::getName));
         }
+        final Map<Long, String> finalAreaMap = areaMap;
 
-        final Map<Long, String> finalAreaMap = areaTypeMap;
+        List<RoomListResponse> responseData = pagedResults.getContent().stream().map(obj -> {
+            Room room = (Room) obj[0];
+            Double dist = (Double) obj[1];
 
-        List<RoomListResponse> responseList = roomPage.getContent().stream().map(room -> {
             RoomListResponse dto = new RoomListResponse();
 
             dto.setId(room.getId());
             dto.setLandlordUserId(room.getLandlord().getId());
+            dto.setLandlordPhone(room.getLandlord().getPhoneNumber());
 
-            Long aId = room.getAreaTypeId();
-            dto.setAreaTypeId(aId);
-            if (aId != null) {
-                dto.setAreaTypeName(finalAreaMap.get(aId));
+            dto.setAreaTypeId(room.getAreaTypeId());
+            if (room.getAreaTypeId() != null) {
+                dto.setAreaTypeName(finalAreaMap.get(room.getAreaTypeId()));
             }
 
             dto.setTitle(room.getTitle());
@@ -250,25 +310,40 @@ public class RoomService {
             dto.setAvgAmenity(room.getAvgAmenity());
             dto.setAvgSecurity(room.getAvgSecurity());
 
+            dto.setDistance(dist);
+
             if (room.getImages() != null && !room.getImages().isEmpty()) {
-                RoomImage coverImage = room.getImages().stream()
+                RoomImage cover = room.getImages().stream()
                         .filter(img -> Boolean.TRUE.equals(img.getIsCover()))
                         .findFirst()
                         .orElse(room.getImages().get(0));
 
-                dto.setRoomCoverImageId(coverImage.getAttachFile().getId());
-                dto.setRoomCoverImageUrl(coverImage.getAttachFile().getUrl());
+                dto.setRoomCoverImageId(cover.getAttachFile().getId());
+                dto.setRoomCoverImageUrl(cover.getAttachFile().getUrl());
+
+                List<RoomNotCoverImageResponse> notCoverImages = room.getImages().stream()
+                        .filter(img -> !img.getId().equals(cover.getId()))
+                        .map(img -> new RoomNotCoverImageResponse(
+                                img.getAttachFile().getId(),
+                                img.getAttachFile().getUrl()
+                        ))
+                        .collect(Collectors.toList());
+                dto.setRoomNotCoverImages(notCoverImages);
+            } else {
+                dto.setRoomNotCoverImages(Collections.emptyList());
             }
 
             return dto;
         }).collect(Collectors.toList());
 
-        return PageResponse.<RoomListResponse>builder()
-                .pageNumber(roomPage.getNumber())
-                .pageSize(roomPage.getSize())
-                .totalElements(roomPage.getTotalElements())
-                .totalPages(roomPage.getTotalPages())
-                .data(responseList)
+        return RoomFilterResponse.builder()
+                .pageNumber(pagedResults.getNumber())
+                .pageSize(pagedResults.getSize())
+                .totalElements(pagedResults.getTotalElements())
+                .totalPages(pagedResults.getTotalPages())
+                .rowIdsInMatrix(rowIdsInMatrix)
+                .initMatrix(initMatrix)
+                .data(responseData)
                 .build();
     }
 
@@ -280,14 +355,17 @@ public class RoomService {
 
 
     @Transactional
-    public void deleteRoom(RoomDeleteRequest req) {
-        Long roomId = req.getId();
-        Room room = roomRepository.findById(roomId)
-                .orElseThrow(() -> new RuntimeException("Phòng không tồn tại"));
-        roomImageRepository.deleteByRoomId(roomId);
-        surveyAnswerRepository.deleteByRoomId(roomId);
+    public void deleteRooms(RoomDeleteRequest request) {
+        List<Long> ids = request.getIds();
 
-        roomRepository.deleteById(roomId);
+        if (ids == null || ids.isEmpty()) {
+            throw new RuntimeException("Danh sách ID không được để trống");
+        }
+        roomRepository.softDeleteByIds(ids);
+
+        roomImageRepository.softDeleteByRoomId(ids);
+        surveyAnswerRepository.softDeleteByRoomId(ids);
+        roomSchoolRepository.softDeleteByRoomId(ids);
     }
 
 

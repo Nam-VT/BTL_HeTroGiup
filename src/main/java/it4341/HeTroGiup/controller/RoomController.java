@@ -35,26 +35,21 @@ public class RoomController {
 
     // 3. Xem danh sách phòng (Theo chủ trọ)
     @PostMapping("/all")
-    public ResponseEntity<ApiResponse> getAllRooms(@RequestBody RoomPageRequest request) {
+    public ResponseEntity<ApiResponse> getAllRooms(@RequestBody RoomFilterRequest request) {
         try {
-            PageResponse<RoomListResponse> result = roomService.getAllRooms(request);
+            // Service giờ trả về RoomFilterResponse
+            RoomFilterResponse result = roomService.getAllRooms(request);
             return ResponseEntity.ok(new ApiResponse("00", null, result));
         } catch (Exception e) {
             return ResponseEntity.ok(new ApiResponse("exception", e.getMessage(), null));
         }
     }
 
-    // 4. Xem chi tiết phòng
-//    @GetMapping("/{id}")
-//    public ResponseEntity<RoomDTO> getRoomDetail(@PathVariable Long id) {
-//        return ResponseEntity.ok(roomService.getRoomDetail(id));
-//    }
-
     @PostMapping("/delete")
-    public ResponseEntity<ApiResponse> deleteRoom(@RequestBody RoomDeleteRequest req) {
+    public ResponseEntity<ApiResponse> deleteRooms(@RequestBody RoomDeleteRequest request) {
         try {
-            roomService.deleteRoom(req);
-            return ResponseEntity.ok(new ApiResponse("00", null, "Xóa phòng thành công"));
+            roomService.deleteRooms(request);
+            return ResponseEntity.ok(new ApiResponse("00", null, "Xóa danh sách phòng thành công"));
         } catch (Exception e) {
             return ResponseEntity.ok(new ApiResponse("exception", e.getMessage(), null));
         }
