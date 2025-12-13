@@ -17,7 +17,7 @@ public class SchoolService {
     private final SchoolRepository schoolRepository;
 
     public List<SchoolResponse> getAllSchool(SchoolRequest schoolRequest) {
-        String nameSchool = schoolRequest.getNameSchool();
+        String nameSchool = schoolRequest.getName();
         List<School> schools;
 
         schools = schoolRepository.findByNameLike(nameSchool.trim());
