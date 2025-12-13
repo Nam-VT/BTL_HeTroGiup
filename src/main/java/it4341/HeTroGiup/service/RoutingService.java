@@ -1,8 +1,10 @@
 package it4341.HeTroGiup.service;
 
 import it4341.HeTroGiup.dto.request.RoomToSchoolRequest;
+import it4341.HeTroGiup.dto.request.RouteRequest;
 import it4341.HeTroGiup.dto.response.BoardingRoomResponse;
 import it4341.HeTroGiup.dto.response.DistanceResponse;
+import it4341.HeTroGiup.dto.response.RouteResponse;
 import it4341.HeTroGiup.entity.Room;
 import it4341.HeTroGiup.entity.RoomSchool;
 import it4341.HeTroGiup.entity.School;
@@ -184,6 +186,40 @@ public class RoutingService {
             roomSchoolRepository.saveAll(toUpdate);
         }
     }
+
+    public RouteResponse getRouteDetail(RouteRequest req) {
+        Room room = roomRepository.findById(req.getRoomId())
+                .orElseThrow(() -> new RuntimeException("Phòng không tồn tại"));
+
+        School school = schoolRepository.findById(req.getSchoolId())
+                .orElseThrow(() -> new RuntimeException("Trường không tồn tại"));
+
+        if (room.getLatitude() == null || room.getLongitude() == null) {
+            throw new RuntimeException("Phòng chưa có tọa độ");
+        }
+
+        double schoolLat = 0, schoolLng = 0;
+        try {
+            double[] geo = geocodingService.getCoordinates(school.getNameSearch());
+            schoolLat = geo[0];
+            schoolLng = geo[1];
+        } catch (Exception e) {
+            return new RouteResponse(0.0, Collections.emptyList());
+        }
+
+        RouteData routeData = getDistance(
+                room.getLatitude().doubleValue(),
+                room.getLongitude().doubleValue(),
+                schoolLat,
+                schoolLng
+        );
+
+        return RouteResponse.builder()
+                .distance(routeData.getDistanceKm())
+                .geometry(routeData.getCoordinates())
+                .build();
+    }
+
 
     private RouteData getDistance(Double lat1, Double lng1, Double lat2, Double lng2) {
         try {

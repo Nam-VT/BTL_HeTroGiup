@@ -6,7 +6,6 @@ import it4341.HeTroGiup.service.RoomService;
 import it4341.HeTroGiup.service.RoutingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.parameters.P;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -64,4 +63,15 @@ public class RoomController {
             return ResponseEntity.ok(new ApiResponse("exception", e.getMessage(), null));
         }
     }
+
+    @PostMapping("/view-map")
+    public ResponseEntity<ApiResponse> getRoutePath(@RequestBody RouteRequest request) {
+        try {
+            RouteResponse result = routingService.getRouteDetail(request);
+            return ResponseEntity.ok(new ApiResponse("00", null, result));
+        } catch (Exception e) {
+            return ResponseEntity.ok(new ApiResponse("exception", e.getMessage(), null));
+        }
+    }
+
 }
