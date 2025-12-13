@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
+import java.util.List;
 
 @Data
 @Builder
@@ -15,6 +16,9 @@ import java.math.BigDecimal;
 public class RoomListResponse {
     private Long id;
     private Long landlordUserId;
+
+    private String landlordPhone;
+
     private Long areaTypeId;
 
     private String areaTypeName;
@@ -33,4 +37,8 @@ public class RoomListResponse {
 
     private Long roomCoverImageId;
     private String roomCoverImageUrl;
+
+    private List<RoomNotCoverImageResponse> roomNotCoverImages;
+
+    private Double distance;
 }
