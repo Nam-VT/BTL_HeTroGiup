@@ -21,9 +21,12 @@ public class DSSController {
             try {
                 List<List<Double>> data = dssService.createDecisionTable(req);
 
+                Map<String, Object> result = new LinkedHashMap<>();
+                result.put("xMatrix", data);
+
                 response.put("code", "00");
                 response.put("message", null);
-                response.put("data", data);
+                response.put("data", result);
 
                 return ResponseEntity.ok(response);
 
@@ -42,9 +45,12 @@ public class DSSController {
             try {
                 List<List<Double>> data = dssService.normalizeDecisionTable(req);
 
+                Map<String, Object> result = new LinkedHashMap<>();
+                result.put("rMatrix", data);
+
                 response.put("code", "00");
                 response.put("message", null);
-                response.put("data", data);
+                response.put("data", result);
 
                 return ResponseEntity.ok(response);
 
@@ -63,9 +69,12 @@ public class DSSController {
             try {
                 List<List<Double>> weights = dssService.calculateWeightedMatrix(req);
 
+                Map<String, Object> result = new LinkedHashMap<>();
+                result.put("vMatrix", weights);
+
                 response.put("code", "00");
                 response.put("message", null);
-                response.put("data", weights);
+                response.put("data", result);
 
                 return ResponseEntity.ok(response);
 

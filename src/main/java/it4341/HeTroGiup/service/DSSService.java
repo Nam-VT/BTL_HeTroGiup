@@ -67,7 +67,7 @@ public class DSSService {
     public List<List<Double>> normalizeDecisionTable(Map<String, Object> req) {
         // 1. Parse dữ liệu an toàn
         @SuppressWarnings("unchecked")
-        List<List<?>> rawData = (List<List<?>>) req.get("initMatrix");
+        List<List<?>> rawData = (List<List<?>>) req.get("xMatrix");
         List<List<Double>> data = rawData.stream()
                 .map(row -> row.stream()
                         .map(item -> ((Number) item).doubleValue())

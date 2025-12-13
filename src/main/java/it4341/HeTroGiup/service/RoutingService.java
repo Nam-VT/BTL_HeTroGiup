@@ -38,7 +38,7 @@ public class RoutingService {
         List<DistanceResponse> result = new ArrayList<>();
 
         // 1. Lấy thông tin School
-        School school = schoolRepository.findById(roomToSchoolRequest.getId())
+        School school = schoolRepository.findById(roomToSchoolRequest.getSchoolId())
                 .orElseThrow(() -> new RuntimeException("School not found"));
 
         double schoolLat = 0;

@@ -4,5 +4,5 @@ import lombok.Data;
 
 @Data
 public class RoomToSchoolRequest {
-    Long id;
+    Long schoolId;
 }
