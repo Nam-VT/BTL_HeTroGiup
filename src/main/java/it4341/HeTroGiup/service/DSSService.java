@@ -15,18 +15,17 @@ import java.util.HashMap;
 @RequiredArgsConstructor
 public class DSSService {
     public List<List<Double>> createDecisionTable(Map<String, Object> req) {
-
         List<List<?>> rawData = (List<List<?>>) req.get("initMatrix");
-
 
         List<List<Double>> data = rawData.stream()
                 .map(row -> row.stream()
-                        .map(item -> ((Number) item).doubleValue()) // Chuyển int, float, long... thành double hết
+                        .map(item -> ((Number) item).doubleValue())
                         .collect(Collectors.toList()))
-                .collect(Collectors.toList());
+                .toList();
 
         Map<String, Object> filter = (Map<String, Object>) req.get("filter");
 
+        // Lấy thông số từ filter
         double fromPrice = getDouble(filter, "fromPrice");
         double toPrice = getDouble(filter, "toPrice");
         double fromDistance = getDouble(filter, "fromDistance");
@@ -39,6 +38,7 @@ public class DSSService {
         double toAmenityPoints = getDouble(filter, "toAmenityPoints");
 
         return data.stream()
+                // 1. Bước lọc: Chỉ giữ lại các hàng thỏa mãn điều kiện
                 .filter(row -> {
                     double price = row.get(0);
                     double distance = row.get(1);
@@ -46,15 +46,27 @@ public class DSSService {
                     double securityPoints = row.get(3);
                     double amenityPoints = row.get(4);
 
+                    return price >= fromPrice && price <= toPrice &&
+                            distance >= fromDistance && distance <= toDistance &&
+                            area >= fromArea && area <= toArea &&
+                            securityPoints >= fromSecurityPoints && securityPoints <= toSecurityPoints &&
+                            amenityPoints >= fromAmenityPoints && amenityPoints <= toAmenityPoints;
+                })
+                // 2. Bước chuyển đổi: Tính toán giá trị "fit" để trả về
+                .map(row -> {
+                    double price = row.get(0);
+                    double distance = row.get(1);
+                    double area = row.get(2);
+                    double securityPoints = row.get(3);
+                    double amenityPoints = row.get(4);
+
+                    // Tính toán 3 giá trị fit
                     double fitPrice = toPrice - price;
                     double fitDistance = toDistance - distance;
                     double fitArea = area - fromArea;
 
-                    return fitPrice >= 0 &&
-                            fitDistance >= 0 &&
-                            fitArea >= 0 &&
-                            securityPoints >= fromSecurityPoints && securityPoints <= toSecurityPoints &&
-                            amenityPoints >= fromAmenityPoints && amenityPoints <= toAmenityPoints;
+                    // Trả về danh sách mới theo cấu trúc bạn muốn
+                    return List.of(fitPrice, fitDistance, fitArea, securityPoints, amenityPoints);
                 })
                 .toList();
     }
