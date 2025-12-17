@@ -41,6 +41,59 @@ public class RoomService {
             throw new RuntimeException("Khu vực (AreaType) không tồn tại");
         }
 
+        // Biến lưu điểm tb
+        BigDecimal avgAmenity = null;
+        BigDecimal avgSecurity = null;
+
+        Map<Long, SurveyQuestion> questionMap = new HashMap<>();
+
+        if (req.getSurveyAnswers() != null && !req.getSurveyAnswers().isEmpty()) {
+            double sumAmenity = 0;
+            int countAmenity = 0;
+            double sumSecurity = 0;
+            int countSecurity = 0;
+
+            // Lấy danh sách ID câu hỏi từ request
+            List<Long> questionIds = req.getSurveyAnswers().stream()
+                    .map(RoomSurveyAnswerRequest::getSurveyQuestionId)
+                    .collect(Collectors.toList());
+
+            // Fetch toàn bộ câu hỏi 1 lần từ DB
+            List<SurveyQuestion> questions = surveyQuestionRepository.findAllById(questionIds);
+
+            // Đưa vào Map để tra cứu nhanh
+            questionMap = questions.stream()
+                    .collect(Collectors.toMap(SurveyQuestion::getId, q -> q));
+
+            // Duyệt qua từng câu trả lời trong request để tính toán
+            for (RoomSurveyAnswerRequest ansDto : req.getSurveyAnswers()) {
+                SurveyQuestion question = questionMap.get(ansDto.getSurveyQuestionId());
+
+                if (question != null) {
+                    Integer point = ansDto.getPoint();
+                    if (point == null) point = 0;
+
+                    // Kiểm tra loại khảo sát (AMENITY hay SECURITY)
+                    // Lưu ý: Cần đảm bảo Entity SurveyType import đúng
+                    if (question.getSurvey().getType() == it4341.HeTroGiup.Enum.SurveyType.AMENITY) {
+                        sumAmenity += point;
+                        countAmenity++;
+                    } else if (question.getSurvey().getType() == it4341.HeTroGiup.Enum.SurveyType.SECURITY) {
+                        sumSecurity += point;
+                        countSecurity++;
+                    }
+                }
+            }
+
+            // Tính trung bình (Làm tròn 1 chữ số thập phân)
+            if (countAmenity > 0) {
+                avgAmenity = BigDecimal.valueOf(sumAmenity / countAmenity);
+            }
+            if (countSecurity > 0) {
+                avgSecurity = BigDecimal.valueOf(sumSecurity / countSecurity);
+            }
+        }
+
         // 2. Tạo đối tượng Room (Chưa có ảnh)
         Room room = new Room();
         room.setLandlord(landlord);
@@ -55,14 +108,14 @@ public class RoomService {
         room.setRoomType(req.getRoomType());
         room.setStatus(req.getStatus());
         room.setIsDeleted(false);
-        room.setAvgAmenity(null);
-        room.setAvgSecurity(null);
+
+        room.setAvgAmenity(avgAmenity);
+        room.setAvgSecurity(avgSecurity);
 
         Room savedRoom = roomRepository.save(room);
 
         // 3. Xử lý logic gán Ảnh (Theo tham số mới: Bìa riêng, Thường riêng)
         List<RoomImage> roomImages = new ArrayList<>();
-
         // 3.1. Xử lý Ảnh Bìa (roomCoverImageId)
         if (req.getRoomCoverImageId() != null) {
             AttachFile coverFile = attachFileRepository.findById(req.getRoomCoverImageId()).orElse(null);
@@ -76,7 +129,6 @@ public class RoomService {
                 roomImages.add(roomImage);
             }
         }
-
         // 3.2. Xử lý Ảnh Thường (roomNotCoverImageIds)
         if (req.getRoomNotCoverImageIds() != null && !req.getRoomNotCoverImageIds().isEmpty()) {
             for (Long fileId : req.getRoomNotCoverImageIds()) {
@@ -101,12 +153,16 @@ public class RoomService {
             roomImageRepository.saveAll(roomImages);
         }
 
-        // 4. Xử lý Khảo sát (Survey Answers)
+        // 4. Lưu chi tiết câu trả lời vào bảng survey_answer
         if (req.getSurveyAnswers() != null && !req.getSurveyAnswers().isEmpty()) {
             List<SurveyAnswer> answers = new ArrayList<>();
             for (RoomSurveyAnswerRequest ansDto : req.getSurveyAnswers()) {
-                SurveyQuestion question = surveyQuestionRepository.findById(ansDto.getSurveyQuestionId())
-                        .orElseThrow(() -> new RuntimeException("Câu hỏi ID " + ansDto.getSurveyQuestionId() + " không tồn tại"));
+                SurveyQuestion question = questionMap.get(ansDto.getSurveyQuestionId());
+
+                if (question == null) {
+                    question = surveyQuestionRepository.findById(ansDto.getSurveyQuestionId())
+                            .orElseThrow(() -> new RuntimeException("Câu hỏi ID " + ansDto.getSurveyQuestionId() + " không tồn tại"));
+                }
 
                 SurveyAnswer answer = SurveyAnswer.builder()
                         .room(savedRoom)
