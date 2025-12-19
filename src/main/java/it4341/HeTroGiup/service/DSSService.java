@@ -64,9 +64,11 @@ public class DSSService {
                     double fitPrice = toPrice - price;
                     double fitDistance = toDistance - distance;
                     double fitArea = area - fromArea;
+                    double fitSecurityPoints = securityPoints - fromSecurityPoints;
+                    double fitAmenityPoints = amenityPoints - fromAmenityPoints;
 
                     // Trả về danh sách mới theo cấu trúc bạn muốn
-                    return List.of(fitPrice, fitDistance, fitArea, securityPoints, amenityPoints);
+                    return List.of(fitPrice, fitDistance, fitArea, fitSecurityPoints, fitAmenityPoints);
                 })
                 .toList();
     }
