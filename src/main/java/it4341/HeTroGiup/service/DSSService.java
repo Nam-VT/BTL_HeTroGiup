@@ -65,9 +65,11 @@ public class DSSService {
                     double fitDistance =
                             Math.round((toDistance - distance) * 10000.0) / 10000.0;
                     double fitArea = area - fromArea;
+                    double fitSecurityPoints = Math.round((securityPoints-fromSecurityPoints)*10000.0) / 10000.0;
+                    double fitAmenityPoints = Math.round((amenityPoints - fromAmenityPoints)*10000.0) / 10000.0;
 
                     // Trả về danh sách mới theo cấu trúc bạn muốn
-                    return List.of(fitPrice, fitDistance, fitArea, securityPoints, amenityPoints);
+                    return List.of(fitPrice, fitDistance, fitArea, fitSecurityPoints, fitAmenityPoints);
                 })
                 .toList();
     }
