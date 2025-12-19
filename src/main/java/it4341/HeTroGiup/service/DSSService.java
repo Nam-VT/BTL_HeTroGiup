@@ -62,7 +62,8 @@ public class DSSService {
 
                     // Tính toán 3 giá trị fit
                     double fitPrice = toPrice - price;
-                    double fitDistance = toDistance - distance;
+                    double fitDistance =
+                            Math.round((toDistance - distance) * 10000.0) / 10000.0;
                     double fitArea = area - fromArea;
 
                     // Trả về danh sách mới theo cấu trúc bạn muốn
