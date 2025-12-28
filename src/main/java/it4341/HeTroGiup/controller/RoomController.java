@@ -74,4 +74,13 @@ public class RoomController {
         }
     }
 
+    @PostMapping("/survey-answer-by-room-id")
+    public ResponseEntity<ApiResponse> getSurveyAnswerByRoomId(@RequestBody RoomSurveyRequest request) {
+        try {
+            RoomSurveyResponse result = roomService.getSurveyAnswersByRoomId(request);
+            return ResponseEntity.ok(new ApiResponse("00", null, result));
+        } catch (Exception e) {
+            return ResponseEntity.ok(new ApiResponse("exception", e.getMessage(), null));
+        }
+    }
 }

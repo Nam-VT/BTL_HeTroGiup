@@ -19,4 +19,6 @@ public interface SurveyAnswerRepository extends JpaRepository<SurveyAnswer, Long
     @Transactional
     @Query("UPDATE SurveyAnswer s SET s.isDeleted = true WHERE s.room.id IN :roomIds")
     void softDeleteByRoomId(@Param("roomIds") List<Long> roomIds);
+
+    List<SurveyAnswer> findByRoomIdAndIsDeletedFalse(Long roomId);
 }

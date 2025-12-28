@@ -424,5 +424,33 @@ public class RoomService {
         roomSchoolRepository.softDeleteByRoomId(ids);
     }
 
+    public RoomSurveyResponse getSurveyAnswersByRoomId(RoomSurveyRequest req) {
+        if (req.getRoomId() == null) {
+            throw new RuntimeException("Room ID không được để trống");
+        }
 
+        if (!roomRepository.existsById(req.getRoomId())) {
+            throw new RuntimeException("Phòng không tồn tại");
+        }
+
+        List<SurveyAnswer> answers = surveyAnswerRepository.findByRoomIdAndIsDeletedFalse(req.getRoomId());
+
+        List<SurveyAnswerDetailResponse> details = answers.stream().map(ans -> {
+            return SurveyAnswerDetailResponse.builder()
+                    .id(ans.getId())
+                    .roomId(ans.getRoom().getId())
+                    .surveyQuestionId(ans.getSurveyQuestion().getId())
+                    .surveyId(ans.getSurveyQuestion().getSurvey().getId()) // Lấy ID bộ khảo sát
+                    .surveyType(ans.getSurveyQuestion().getSurvey().getType()) // Lấy loại (AMENITY/SECURITY)
+                    .surveyQuestionText(ans.getSurveyQuestion().getQuestionText())
+                    .surveyQuestionOrder(ans.getSurveyQuestion().getQuestionOrder())
+                    .point(ans.getPoint())
+                    .build();
+        }).collect(Collectors.toList());
+
+        return RoomSurveyResponse.builder()
+                .roomId(req.getRoomId())
+                .surveyAnswers(details)
+                .build();
+    }
 }
